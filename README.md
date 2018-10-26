@@ -17,5 +17,4 @@ roslaunch camera_scene_classifier scene_classifier.launch config:=<path_to_JSON_
 ```
 
 NOTE:
-- `<image_topic>` has to be a topic of `sensor_msgs/Image` messages.
 - `<detections_topic>` has to be a topic of `darknet_ros_msgs/BoundingBoxes` messages.
