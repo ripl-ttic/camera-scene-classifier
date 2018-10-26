@@ -1,4 +1,4 @@
-# scene_classifier
+# camera_scene_classifier
 
 Scene classifier based on object detections in the image space.
 
