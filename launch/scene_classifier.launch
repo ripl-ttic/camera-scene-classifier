@@ -1,0 +1,13 @@
+<launch>
+    <!-- Required arguments -->
+    <arg name="config" doc="JSON file containing the configuration of the classifier. (see config.example.json for further information)" />
+
+    <!-- Optional arguments -->
+    <arg name="detections" default="/detections" doc="Input topic of type darknet_ros_msgs/BoundingBoxes containing object detections" />
+
+    <!-- Nodes -->
+    <node pkg="camera_scene_classifier" type="scene_classifier" name="scene_classifier_node" cwd="node" output="screen">
+        <param name="config_file" type="str" value="$(arg config)" />
+        <param name="detections_topic" type="str" value="$(arg detections)" />
+    </node>
+</launch>

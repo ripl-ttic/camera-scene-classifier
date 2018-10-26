@@ -1,0 +1,17 @@
+{
+	"kitchen" : [
+		"cup",
+		"bowl",
+		"refrigerator"
+	],
+	"office" : [
+		"bottle",
+		"backpack",
+		"monitor",
+		"keyboard"
+	],
+	"parking_lot" : [
+		"car",
+		"truck"
+	]
+}

@@ -1,0 +1,86 @@
+#!/usr/bin/env python
+
+# @Author: Andrea F. Daniele <afdaniele>
+# @Date:   Thursday, April 27th 2018
+# @Email:  afdaniele@ttic.edu
+# @Last modified by:   afdaniele
+# @Last modified time: Thursday, April 27th 2018
+
+import sys, os
+import numpy as np
+import math
+import rospy
+import json
+from darknet_ros_msgs.msg import BoundingBoxes
+from camera_scene_classifier.msg import SceneClassification
+
+class SceneClassifier():
+
+    def __init__(self, config_file, detections_topic):
+        self.paused = True
+        self.objects_to_scene_label_map = {}
+        self.verbose = True
+        # initialize ROS node
+        rospy.init_node('camera_scene_classifier')
+        # load map
+        self.objects_to_scene_label_map = json.load(open(config_file))
+        self.scene_labels = self.objects_to_scene_label_map.keys()
+        self.scene_labels.sort()
+        # subscribe to stream of detections
+        rospy.Subscriber(detections_topic, BoundingBoxes, self.detections_callback, queue_size=1)
+        # advertise new ROS topic
+        self.scene_class_publisher = rospy.Publisher('~/scene_classification', SceneClassification, queue_size=5)
+
+
+    def start(self):
+        self.paused = False
+        # consume messages
+        rospy.spin()
+
+    def _most_likely_scene_given_object(self, object_label):
+        for scene_lbl, scene_objects in self.objects_to_scene_label_map.items():
+            if object_label in scene_objects: return scene_lbl
+        return None
+
+    def detections_callback(self, detections_msg):
+        # temp structures and vars
+        count_per_category = {
+            label : 0 for label in self.objects_to_scene_label_map
+        }
+        # count object labels per scene category
+        for bounding_box in detections_msg.bounding_boxes:
+            scene_lbl = self._most_likely_scene_given_object( bounding_box.Class )
+            if scene_lbl is None: continue
+            count_per_category[ scene_lbl ] += 1
+        # return most likely scene category
+        max_count = 0
+        scene_name = ""
+        for scene_lbl, obj_count in count_per_category.items():
+            if obj_count > max_count:
+                max_count = obj_count
+                scene_name = scene_lbl
+        # get scene ID
+        scene_id = self.scene_labels.index(scene_name)
+        # publish scene class
+        scene_class_msg = SceneClassification(
+            header = detections_msg.header,
+            class = scene_id,
+            classes = self.scene_labels
+        )
+        if self.verbose:
+            print "Detected '%s'" % scene_name
+        self.scene_class_publisher.publish( scene_class_msg )
+
+
+if __name__ == '__main__':
+    # get parameters
+    config_file = rospy.get_param("~config_file")
+    detection_topic = rospy.get_param("~detection_topic")
+
+    # make sure that the configuration file exists
+    if not os.path.isfile( config_file ):
+        rospy.logfatal('The configuration file "%s" does not exist.', config_file)
+
+    # create scene classifier
+    classifier = SceneClassifier( config_file, detections_topic )
+    classifier.start()
